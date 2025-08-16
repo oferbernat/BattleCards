@@ -1,537 +1,625 @@
 <!doctype html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
-  <title>Battle Cards — גרסה משודרגת</title>
-  <style>
-    :root{ --hand-h:108px; --pad:8px; --bg-you:#0b2012; --bg-enemy:#200b0b;
-      --panel:#111827; --card:#1f2937; --ink:#fff;}
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans',Ubuntu,'Helvetica Neue',Arial}
-    body{overflow:hidden;transition:background 0.4s;color:#fff}
-    #wrap{position:fixed;inset:0;display:flex;flex-direction:column}
-    #top{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);background:linear-gradient(90deg,#0e1626,#0b1220);box-shadow:0 2px 6px rgba(0,0,0,.5);font-weight:700;z-index:3}
-    #status{font-weight:600;font-size:14px;opacity:.9}
-    #gameWrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:var(--pad);position:relative}
-    #statsPanel{
-      position:absolute;left:8px;top:52px;bottom:var(--hand-h); width:160px;
-      background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,.15);
-      border-radius:10px;padding:6px;font-size:13px;overflow-y:auto;color:#fff;
-    }
-    #statsPanel h4{margin:4px 0;font-size:14px;text-align:center}
-    #statsPanel p{margin:2px 0;font-size:12px;color:#fff}
-    canvas{display:block;background:#071021;border-radius:12px;max-width:100%;height:100%;touch-action:none}
-    #hand{height:var(--hand-h);display:flex;gap:8px;align-items:center;overflow-x:auto;padding:8px;background:var(--panel);border-top:1px solid rgba(255,255,255,.06);z-index:3}
-    .card{min-width:104px;background:var(--card);padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,.08);box-shadow:0 3px 8px rgba(0,0,0,.5);flex:0 0 auto;cursor:pointer;text-align:center;color:#fff;position:relative;overflow:hidden}
-    .card h4{margin:4px 0 2px;font-size:13px}
-    .card p{margin:0;font-size:11px;opacity:.85}
-    .ic{font-size:18px;line-height:1}
-    .sel{outline:3px solid #3b82f6}
-    .pill{font-size:12px;padding:2px 8px;border:1px solid rgba(255,255,255,.12);border-radius:999px}
-    #victoryOverlay{
-      position:fixed;inset:0;background:rgba(0,0,0,.75);
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      color:#fff;font-size:24px;z-index:99;opacity:0;pointer-events:none;transition:opacity .4s;
-    }
-    #victoryOverlay.active{opacity:1;pointer-events:auto;}
-    #victoryOverlay button{
-      margin-top:20px;padding:10px 20px;font-size:18px;border:none;border-radius:10px;background:#3b82f6;color:#fff;cursor:pointer;
-    }
-    .upgradeIcons{margin-top:4px;font-size:16px;}
-  </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+    <title>Battle Cards — גרסה משודרגת</title>
+    <style>
+        :root{
+            --hand-h:108px;
+            --pad:8px;
+            --bg-you:#0b2012;
+            --bg-enemy:#200b0b;
+            --panel:#111827;
+            --card:#1f2937;
+            --ink:#fff;
+        }
+        *{box-sizing:border-box}
+        html,body{height:100%;margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans',Ubuntu,'Helvetica Neue',Arial}
+        body{overflow:hidden;transition:background 0.4s;color:#fff}
+        #wrap{position:fixed;inset:0;display:flex;flex-direction:column}
+        #top{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);background:linear-gradient(90deg,#0e1626,#0b1220);box-shadow:0 2px 6px rgba(0,0,0,.5);font-weight:700;z-index:3}
+        #status{font-weight:600;font-size:14px;opacity:.9}
+        #gameWrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:var(--pad);position:relative}
+        #statsPanel{
+            position:absolute;
+            left:8px;
+            top:52px;
+            bottom:var(--hand-h);
+            width:160px;
+            background:rgba(0,0,0,0.5);
+            border:1px solid rgba(255,255,255,.15);
+            border-radius:10px;padding:6px;font-size:13px;overflow-y:auto;color:#fff;
+            transition: transform 0.3s ease-in-out;
+            z-index: 5;
+        }
+        #statsPanel.closed {
+            transform: translateX(calc(-100% - 8px));
+        }
+        #statsPanel h4{margin:4px 0;font-size:14px;text-align:center}
+        #statsPanel p{margin:2px 0;font-size:12px;color:#fff}
+        canvas{display:block;background:#071021;border-radius:12px;max-width:100%;height:100%;touch-action:none}
+        #hand{height:var(--hand-h);display:flex;gap:8px;align-items:center;overflow-x:auto;padding:8px;background:var(--panel);border-top:1px solid rgba(255,255,255,.06);z-index:3}
+        .card{min-width:104px;background:var(--card);padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,.08);box-shadow:0 3px 8px rgba(0,0,0,.5);flex:0 0 auto;cursor:pointer;text-align:center;color:#fff;position:relative;overflow:hidden}
+        .card h4{margin:4px 0 2px;font-size:13px}
+        .card p{margin:0;font-size:11px;opacity:.85}
+        .ic{font-size:18px;line-height:1}
+        .sel{outline:3px solid #3b82f6}
+        .pill{font-size:12px;padding:2px 8px;border:1px solid rgba(255,255,255,.12);border-radius:999px}
+        #victoryOverlay{
+            position:fixed;inset:0;background:rgba(0,0,0,.75);
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            color:#fff;font-size:24px;z-index:99;opacity:0;pointer-events:none;transition:opacity .4s;
+        }
+        #victoryOverlay.active{opacity:1;pointer-events:auto;}
+        #victoryOverlay button{
+            margin-top:20px;padding:10px 20px;font-size:18px;border:none;border-radius:10px;background:#3b82f6;color:#fff;cursor:pointer;
+        }
+        .upgradeIcons{margin-top:4px;font-size:16px;}
+        #closeStatsBtn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-<div id="wrap">
-  <div id="top">
-    <div>Battle Cards — תור: <span id="turnLabel">אתה</span></div>
-    <div id="status" class="pill">פעולה אחת לתור</div>
-  </div>
-  <div id="gameWrap">
-    <canvas id="cv"></canvas>
-    <div id="statsPanel">
-      <h4>סטטיסטיקות</h4>
-      <p>🪖 חייל רגיל — HP:2, פגיעה:70%</p>
-      <p>🎯 צלף — HP:1, טווח:3, פגיעה:80%</p>
-      <p>🛡️ חייל כבד — HP:3, פגיעה:60%</p>
-      <hr>
-      <p>🔫 רובה — מוריד לב נוסף (בלי רובה אי אפשר לירות)</p>
-      <p>🔭 כוונת — מעלה דיוק ב10%</p>
-      <p>💙 שריון — מעלה הגנה</p>
-      <small>שדרוגים מצטברים!</small>
+    <div id="wrap">
+        <div id="top">
+            <div>Battle Cards — תור: <span id="turnLabel">אתה</span></div>
+            <div id="status" class="pill">פעולה אחת לתור</div>
+        </div>
+        <div id="gameWrap">
+            <canvas id="cv"></canvas>
+            <div id="statsPanel">
+                <button id="closeStatsBtn">✕</button>
+                <h4>סטטיסטיקות</h4>
+                <p>🪖 חייל רגיל — HP:2, פגיעה:70%</p>
+                <p>🎯 צלף — HP:1, טווח:3, פגיעה:80%</p>
+                <p>🛡️ חייל כבד — HP:3, פגיעה:60%</p>
+                <hr>
+                <p>🔫 רובה — מוריד לב נוסף (בלי רובה אי אפשר לירות)</p>
+                <p>🔭 כוונת — מעלה דיוק ב10%</p>
+                <p>💙 שריון — מעלה הגנה</p>
+                <small>שדרוגים מצטברים!</small>
+            </div>
+        </div>
+        <div id="hand"></div>
     </div>
-  </div>
-  <div id="hand"></div>
-</div>
-<div id="victoryOverlay">
-  <div id="victoryText"></div>
-  <div id="victoryStats"></div>
-  <button onclick="location.reload()">רענן להתחלה מחדש</button>
-</div>
-<script>
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
-const handEl = document.getElementById('hand');
-const turnLabel = document.getElementById('turnLabel');
-const victoryOverlay = document.getElementById('victoryOverlay');
-const victoryText = document.getElementById('victoryText');
-const victoryStats = document.getElementById('victoryStats');
-let dpr = Math.max(1, window.devicePixelRatio || 1);
+    <div id="victoryOverlay">
+        <div id="victoryText"></div>
+        <div id="victoryStats"></div>
+        <button onclick="location.reload()">רענן להתחלה מחדש</button>
+    </div>
+    <script>
+        const cv = document.getElementById('cv');
+        const ctx = cv.getContext('2d');
+        const handEl = document.getElementById('hand');
+        const turnLabel = document.getElementById('turnLabel');
+        const victoryOverlay = document.getElementById('victoryOverlay');
+        const victoryText = document.getElementById('victoryText');
+        const victoryStats = document.getElementById('victoryStats');
+        const statsPanel = document.getElementById('statsPanel');
+        const closeStatsBtn = document.getElementById('closeStatsBtn');
 
-let view = { w: 4, h: 4 };
-let CELL_W = 120, CELL_H = 140, GAP = 8;
-function resize() {
-  const H_HAND = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--hand-h')) || 108;
-  const topH = 44;
-  const availW = window.innerWidth - 2*8 - 160;
-  const availH = window.innerHeight - topH - H_HAND - 2*8;
-  const cellAspect = CELL_H / CELL_W;
-  const maxCellW = Math.floor((availW - (view.w+1)*GAP) / view.w);
-  const maxCellH = Math.floor((availH - (view.h+1)*GAP) / view.h);
-  const candidateW = Math.min(maxCellW, Math.floor(maxCellH / cellAspect));
-  CELL_W = Math.max(70, candidateW);
-  CELL_H = Math.max(90, Math.floor(CELL_W * cellAspect));
-  const pixelW = (view.w*CELL_W + (view.w+1)*GAP);
-  const pixelH = (view.h*CELL_H + (view.h+1)*GAP);
-  cv.style.width = pixelW + 'px';
-  cv.style.height = pixelH + 'px';
-  cv.width = Math.floor(pixelW * dpr);
-  cv.height = Math.floor(pixelH * dpr);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  draw();
-}
-window.addEventListener('resize', resize);
+        let dpr = Math.max(1, window.devicePixelRatio || 1);
+        let view = { w: 4, h: 4 };
+        let CELL_W = 120, CELL_H = 140, GAP = 8;
 
-const ROWS = 4, COLS = 4;
-const OWNER = { YOU: 0, ENEMY: 1 };
-const board = Array.from({length: ROWS}, () => Array(COLS).fill(null));
-
-function makeSoldier(name,hp,range=1,role='חייל'){
-  return {type:'soldier',name,role,hp,maxHp:hp,range,owner:null,id:crypto.randomUUID(),weapons:[],upgrades:[]};
-}
-function makeWeapon(name,bonus=1){
-  return {type:'weapon',name,bonus,id:crypto.randomUUID()};
-}
-function makeUpgrade(name,kind='armor',val=1){
-  return {type:'upgrade',name,kind,val,id:crypto.randomUUID()};
-}
-// רובים יותר נפוצים
-const BASE_POOL=[
-  makeSoldier('חייל רגיל',2,1,'חייל'),
-  makeSoldier('צלף',1,2,'צלף'),
-  makeSoldier('חייל כבד',3,1,'כבד'),
-  makeWeapon('רובה',1), makeWeapon('רובה',1), makeWeapon('רובה',1),
-  makeUpgrade('שריון','armor',1),
-  makeUpgrade('כוונת','scope',1)
-];
-function clone(o){return JSON.parse(JSON.stringify(o));}
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function createPlayer(name,owner){return{name,owner,deck:shuffle(BASE_POOL.concat(BASE_POOL)),hand:[],kills:0,turns:0};}
-const players=[createPlayer('אתה',OWNER.YOU),createPlayer('אויב',OWNER.ENEMY)];
-let currentPlayer=0,gameOver=false,actionLocked=false,selectedCell=null,selectedHand=null;
-function hasUnitsOnBoard(owner){
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(board[r][c]&&board[r][c].owner===owner)return true;
-  return false;
-}
-function drawCardFor(pIdx,count=1){
-  const p=players[pIdx];
-  for(let i=0;i<count;i++){
-    if(p.deck.length===0)break;
-    let card=p.deck.pop();
-    if(!hasUnitsOnBoard(p.owner)&&card.type!=='soldier'){card=clone(makeSoldier('חייל רגיל',2,1,'חייל'));}
-    p.hand.push(card);
-  }
-}
-drawCardFor(0,3);
-drawCardFor(1,3);
-
-function cellRect(r,c){const x=GAP+c*CELL_W+c*GAP;const y=GAP+r*CELL_H+r*GAP;return{x,y,w:CELL_W,h:CELL_H};}
-function iconFor(card){
-  if(card.type==='soldier'){
-    return card.role==='צלף'?'🎯':card.role==='כבד'?'🛡️':'🪖';
-  }else if(card.type==='weapon')return '🔫';
-  else if(card.kind==='scope')return '🔭';
-  else return '💙';
-}
-
-function getTotalHP(unit) {
-  const armorCount = unit.upgrades.filter(up=>up.kind==='armor').length;
-  return unit.maxHp + armorCount;
-}
-
-function drawHearts(u,x,y){
-  const armorCount = u.upgrades.filter(up=>up.kind==='armor').length;
-  // Draw blue (armor) hearts FIRST
-  for(let i=0; i<armorCount; i++){
-    const bx = x + i*14, by = y;
-    ctx.fillStyle='#66ccff';
-    ctx.beginPath();
-    ctx.arc(bx+7,by+6,6,0,Math.PI*2);
-    ctx.fill();
-    ctx.font='12px system-ui';
-    ctx.fillStyle='#66ccff';
-    ctx.fillText('💙',bx+1,by+12);
-  }
-  // Draw red (hp) hearts after blue
-  for(let i = 0; i < u.maxHp; i++){
-    const filled = i < u.hp;
-    ctx.fillStyle = filled ? '#ff4d6d' : '#3a3a45';
-    const bx = x+(armorCount+i)*14, by=y;
-    ctx.beginPath();
-    ctx.arc(bx+4,by,4,0,Math.PI*2);
-    ctx.arc(bx+10,by,4,0,Math.PI*2);
-    ctx.moveTo(bx,by+2);ctx.lineTo(bx+7,by+12);ctx.lineTo(bx+14,by+2);ctx.closePath();ctx.fill();
-  }
-}
-
-function getHitChance(unit){
-  let base=1.0;
-  if(unit.role==='חייל') base=0.7;
-  if(unit.role==='כבד') base=0.6;
-  if(unit.role==='צלף') base=0.8;
-  const scopes = unit.upgrades.filter(up=>up.kind==='scope').length;
-  if(scopes > 0) base += 0.1 * scopes;
-  base = Math.min(1,base);
-  return base;
-}
-
-function draw(){
-  ctx.clearRect(0,0,cv.width,cv.height);
-  for(let r=0;r<ROWS;r++){
-    for(let c=0;c<COLS;c++){
-      const {x,y,w,h}=cellRect(r,c);
-      ctx.fillStyle=(r<2)?'#092033':'#072022';
-      ctx.fillRect(x,y,w,h);
-      ctx.strokeStyle='rgba(255,255,255,.08)';
-      ctx.strokeRect(x,y,w,h);
-    }
-  }
-  for(let r=0;r<ROWS;r++){
-    for(let c=0;c<COLS;c++){
-      const u=board[r][c];
-      if(!u)continue;
-      ctx.save();
-      ctx.beginPath();
-      const {x,y,w,h}=cellRect(r,c);
-      ctx.rect(x+2, y+2, w-4, h-4);
-      ctx.clip();
-
-      ctx.fillStyle=(u.owner===OWNER.YOU)?'#1f8a3a':'#c2410c';
-      ctx.fillRect(x+8,y+8,w-16,36);
-
-      ctx.fillStyle='#fff';
-      ctx.font='16px system-ui';
-      ctx.textAlign = 'left';
-      ctx.fillText(`${u.name}`,x+32,y+32);
-
-      drawHearts(u,x+12,y+52);
-
-      // Weapons & upgrades - centered
-      let y_upgrade = y + 75;
-    //   let weapons=u.weapons.length>0?'🔫x'+u.weapons.length:'';
-    //   let scopes=u.upgrades.filter(up=>up.kind==='scope').length>0?'🔭x'+u.upgrades.filter(up=>up.kind==='scope').length:'';
-
-
-      const weaponCount = u.weapons.length;
-      const scopeCount  = u.upgrades.filter(up=>up.kind==='scope').length;
-
-      let weapons = weaponCount > 0 ? `${weaponCount}🔫` : '';
-      let scopes  = scopeCount  > 0 ? `${scopeCount}🔭`  : '';
-
-      let upgradesTxt = [weapons, scopes].filter(Boolean).join(' ');
-      if(upgradesTxt){
-        ctx.fillStyle='#fff';
-        ctx.font='17px system-ui';
-        ctx.textAlign = 'center';
-        ctx.fillText(upgradesTxt, x+w/2, y_upgrade);
-      }
-      // === UNIT SYMBOL at the bottom center ===
-      ctx.font = '28px system-ui';
-      ctx.textAlign = "center";
-      ctx.fillText(
-        iconFor(u), 
-        x + w/2, 
-        y + h - 14
-      );
-      ctx.textAlign = "start";
-
-      ctx.restore();
-    }
-  }
-  if(selectedCell){
-    const {x,y,w,h}=cellRect(selectedCell.row,selectedCell.col);
-    ctx.save();ctx.strokeStyle='#3b82f6';ctx.lineWidth=3;ctx.strokeRect(x,y,w,h);ctx.restore();
-  }
-  renderProjectiles();
-}
-
-function renderHand(){
-  const p=players[currentPlayer];
-  handEl.innerHTML='';
-  p.hand.forEach((card,idx)=>{
-    const el=document.createElement('div');
-    el.className='card';
-    el.style.position='relative';
-    el.innerHTML = `<div class="ic">${iconFor(card)}</div>
-      <h4>${card.name}</h4>
-      <p>${card.type==='soldier'?'HP:'+getTotalHP(card)+' • טווח:'+(card.range===3?'3':'1'):
-      card.type==='weapon'?'נשק':card.kind==='scope'?'כוונת':'שריון'}</p>`;
-    el.onclick=()=>{
-      selectedCell=null;
-      selectedHand=(selectedHand===idx?null:idx);
-      document.querySelectorAll('.card').forEach((n,i)=>n.classList.toggle('sel',i===selectedHand));
-    };
-    handEl.appendChild(el);
-  });
-}
-
-function shoot(unit,target,fromCell,toCell,cb){
-  const weaponsCount = unit.weapons.filter(w=>w.name==='רובה').length;
-  if(weaponsCount===0){
-    if(cb) cb(false); // false = no action performed
-    return;
-  }
-  launchProjectileCustom(fromCell,toCell,()=>{
-    let hitSuccess = (Math.random() < getHitChance(unit));
-    if(hitSuccess){
-      let damage = weaponsCount;
-      while(damage > 0){
-        let armorIdx = target.upgrades.findIndex(up=>up.kind==='armor');
-        if(armorIdx >= 0){
-          target.upgrades.splice(armorIdx,1);
-          damage--;
-        }else if(target.hp > 0){
-          target.hp -= 1;
-          damage--;
-        }else{
-          break;
+        function resize() {
+            const H_HAND = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--hand-h')) || 108;
+            const topH = 44;
+            const availW = window.innerWidth - 2*8 - 160;
+            const availH = window.innerHeight - topH - H_HAND - 2*8;
+            const cellAspect = CELL_H / CELL_W;
+            const maxCellW = Math.floor((availW - (view.w+1)*GAP) / view.w);
+            const maxCellH = Math.floor((availH - (view.h+1)*GAP) / view.h);
+            const candidateW = Math.min(maxCellW, Math.floor(maxCellH / cellAspect));
+            CELL_W = Math.max(70, candidateW);
+            CELL_H = Math.max(90, Math.floor(CELL_W * cellAspect));
+            const pixelW = (view.w*CELL_W + (view.w+1)*GAP);
+            const pixelH = (view.h*CELL_H + (view.h+1)*GAP);
+            cv.style.width = pixelW + 'px';
+            cv.style.height = pixelH + 'px';
+            cv.width = Math.floor(pixelW * dpr);
+            cv.height = Math.floor(pixelH * dpr);
+            ctx.setTransform(dpr,0,0,dpr,0,0);
+            draw();
         }
-      }
-      if(target.hp <=0 && target.upgrades.filter(up=>up.kind==='armor').length === 0){
-        board[toCell.row][toCell.col] = null;
-        players[currentPlayer].kills++;
-      }
-    } else {
-      let missRow = Math.floor(Math.random()*ROWS);
-      let missCol = Math.floor(Math.random()*COLS);
-      launchProjectileCustom(fromCell,{row:missRow,col:missCol},()=>{});
-    }
-    if(cb) cb(true); // true = action performed
-    draw();
-  });
-}
+        window.addEventListener('resize', resize);
+        
+        closeStatsBtn.addEventListener('click', () => {
+            statsPanel.classList.toggle('closed');
+        });
 
-function launchProjectileCustom(fromCell,toCell,onDone){
-  const sf=cellRect(fromCell.row,fromCell.col),tf=cellRect(toCell.row,toCell.col);
-  const sx=sf.x+sf.w/2,sy=sf.y+sf.h/2,ex=tf.x+tf.w/2,ey=tf.y+tf.h/2;
-  projectiles.push({sx,sy,ex,ey,start:performance.now(),dur:280,cb:onDone});
-  if(!animRAF)animRAF=requestAnimationFrame(tick);
-}
+        const ROWS = 4, COLS = 4;
+        const OWNER = { YOU: 0, ENEMY: 1 };
+        const board = Array.from({length: ROWS}, () => Array(COLS).fill(null));
 
-function inBounds(r,c){return r>=0&&r<ROWS&&c>=0&&c<COLS;}
-function isOwnPlacementRow(owner,row){return owner===OWNER.YOU?(row>=2):(row<2);}
-function isAdjacent(from,to){
-  const dr=Math.abs(from.row-to.row),dc=Math.abs(from.col-to.col);
-  return ((dr===1 && dc===0)||(dr===0 && dc===1));
-}
-function isSniperShot(from,to,unit){
-  if(unit.range!==2)return false;
-  const dr=Math.abs(from.row-to.row),dc=Math.abs(from.col-to.col);
-  return (Math.max(dr,dc)<=2)&&!(dr===0&&dc===0);
-}
-function checkVictoryNow(){
-  let youWin = false, enemyWin = false;
-  // YOU wins if any of your units on top row (0)
-for (let c = 0; c < COLS; c++) {
-    if (board[0][c] && board[0][c].owner === OWNER.YOU) youWin = true;
-}
-
-  // ENEMY wins if any of enemy units on bottom row (ROWS-1)
-  for(let c=0; c<COLS; c++){
-    if(board[ROWS-1][c] && board[ROWS-1][c].owner === OWNER.ENEMY) enemyWin = true;
-  }
-  if(youWin || enemyWin){
-    gameOver = true;
-    setTimeout(() => {
-      if(youWin) showVictory(players[OWNER.YOU]);
-      else showVictory(players[OWNER.ENEMY]);
-    }, 200);
-    return true;
-  }
-  return false;
-}
-function showVictory(winner) {
-  const totalTurns = players[0].turns + players[1].turns;
-  victoryText.textContent = `${winner.name} ניצח! 🎉`;
-  victoryStats.innerHTML =
-    `סה״כ סיבובים: ${totalTurns}<br>` +
-    `הרגים: אתה ${players[0].kills}, אויב ${players[1].kills}`;
-  victoryOverlay.classList.add('active');
-  launchFireworks();
-}
-
-function beginTurn(pIdx){
-  currentPlayer=pIdx;
-  document.body.style.background=currentPlayer===0?'var(--bg-you)':'var(--bg-enemy)';
-  players[currentPlayer].turns++;
-  turnLabel.textContent=players[currentPlayer].name;
-  selectedCell=null;selectedHand=null;
-  drawCardFor(currentPlayer,1);
-  renderHand();draw();
-}
-function endTurnAfter(ms=400){actionLocked=true;setTimeout(()=>{actionLocked=false;if(!gameOver)beginTurn(1-currentPlayer);},ms);}
-const projectiles=[];
-let animRAF=null;
-function renderProjectiles(){
-  ctx.save();
-  for(const p of projectiles){
-    const t=Math.min(1,(performance.now()-p.start)/p.dur);
-    const x=p.sx+(p.ex-p.sx)*t;
-    const y = p.sy + (p.ey - p.sy) * t;
-    ctx.fillStyle = '#ffd166';
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
-}
-function tick(){
-  draw();
-  const now = performance.now();
-  for(let i = projectiles.length - 1; i >= 0; i--){
-    if(now - projectiles[i].start >= projectiles[i].dur){
-      const cb = projectiles[i].cb;
-      projectiles.splice(i,1);
-      if(typeof cb === 'function') cb();
-    }
-  }
-  if(projectiles.length > 0){
-    animRAF = requestAnimationFrame(tick);
-  } else {
-    animRAF = null;
-  }
-}
-
-cv.addEventListener('pointerdown', (ev)=>{
-  if(gameOver || actionLocked) return;
-  const rect = cv.getBoundingClientRect();
-  const x = ev.clientX - rect.left;
-  const y = ev.clientY - rect.top;
-  let row=-1, col=-1;
-  for(let r=0;r<ROWS;r++){
-    for(let c=0;c<COLS;c++){
-      const {x:cx, y:cy, w, h} = cellRect(r,c);
-      if(x>=cx && x<=cx+w && y>=cy && y<=cy+h){ row=r; col=c; }
-    }
-  }
-  if(row<0) return;
-  const me = players[currentPlayer];
-  if(selectedHand !== null){
-    const card = me.hand[selectedHand];
-    if(card.type === 'soldier'){
-      if(board[row][col]===null && isOwnPlacementRow(me.owner,row)){
-        const u = clone(card); u.owner=me.owner; board[row][col]=u;
-        me.hand.splice(selectedHand,1); selectedHand=null; renderHand(); draw();
-        if(!checkVictoryNow()) endTurnAfter(250);
-      } else { selectedHand=null; renderHand(); draw(); }
-      return;
-    } else {
-      const u = board[row][col];
-      if(u && u.owner===me.owner){
-        if(card.type==='weapon') u.weapons.push(clone(card));
-        else u.upgrades.push(clone(card));
-        me.hand.splice(selectedHand,1); selectedHand=null; renderHand(); draw();
-        if(!checkVictoryNow()) endTurnAfter(200);
-      } else { selectedHand=null; renderHand(); draw(); }
-      return;
-    }
-  }
-  if(selectedCell){
-    const from = selectedCell; const unit = board[from.row][from.col];
-    if(!unit || unit.owner!==me.owner){ selectedCell=null; draw(); return; }
-    const target = board[row][col];
-    // ==== Attack (orthogonal) ====
-    if(target && target.owner!==me.owner && isAdjacent(from,{row,col})){
-      actionLocked=true;
-      shoot(unit,target,from,{row,col},actionWas=>{
-        if(actionWas){
-          if(target.hp <=0 && target.upgrades.filter(up=>up.kind==='armor').length===0){
-            board[row][col]=unit; board[from.row][from.col]=null; me.kills++;
-          }
-          selectedCell=null; draw();
-          if(!checkVictoryNow()) endTurnAfter(50);
-        } else {
-          actionLocked=false; // don't end turn if no action (e.g. no gun)
+        function makeSoldier(name,hp,range=1,role='חייל'){
+            return {type:'soldier',name,role,hp,maxHp:hp,range,owner:null,id:crypto.randomUUID(),weapons:[],upgrades:[]};
         }
-      });
-      return;
-    }
-    // ==== Sniper shot (can be diagonal) ====
-    if(target && target.owner!==me.owner && isSniperShot(from,{row,col},unit)){
-      actionLocked=true;
-      shoot(unit,target,from,{row,col},actionWas=>{
-        if(actionWas){
-          if(target.hp <= 0 && target.upgrades.filter(up=>up.kind==='armor').length===0){
-            board[row][col]=null; me.kills++;
-          }
-          selectedCell=null; draw();
-          if(!checkVictoryNow()) endTurnAfter(50);
-        } else {
-          actionLocked=false; // don't end turn if no gun
+        function makeWeapon(name,bonus=1){
+            return {type:'weapon',name,bonus,id:crypto.randomUUID()};
         }
-      });
-      return;
-    }
-    // ==== Move (orthogonal only) ====
-    if(!target && isAdjacent(from,{row,col})){
-      board[row][col]=unit;
-      board[from.row][from.col]=null;
-      selectedCell=null; draw();
-      if(!checkVictoryNow()) endTurnAfter(120);
-      return;
-    }
-    // ==== Any other click: don't end turn ====
-    selectedCell=null; draw();
-    return;
-  } else {
-    const u = board[row][col];
-    if(u && u.owner===me.owner){ selectedCell={row,col}; draw(); }
-  }
-});
+        function makeUpgrade(name,kind='armor',val=1){
+            return {type:'upgrade',name,kind,val,id:crypto.randomUUID()};
+        }
 
-resize(); draw();beginTurn(currentPlayer);
+        const BASE_POOL=[
+            makeSoldier('חייל רגיל',2,1,'חייל'),
+            makeSoldier('צלף',1,2,'צלף'),
+            makeSoldier('חייל כבד',3,1,'כבד'),
+            makeSoldier('חייל רגיל',2,1,'חייל'),
+            makeSoldier('צלף',1,2,'צלף'),
+            makeSoldier('חייל כבד',3,1,'כבד'),
+            makeWeapon('רובה',1),
+            makeWeapon('רובה',1),
+            makeWeapon('רובה',1),
+            makeUpgrade('שריון','armor',1),
+            makeUpgrade('כוונת','scope',1)
+        ];
 
-function launchFireworks(){
-  const fwCanvas = document.createElement('canvas');
-  fwCanvas.style.position='fixed'; fwCanvas.style.inset=0; fwCanvas.style.pointerEvents='none'; document.body.appendChild(fwCanvas);
-  fwCanvas.width = window.innerWidth; fwCanvas.height = window.innerHeight;
-  const fctx = fwCanvas.getContext('2d');
-  const particles=[];
-  for(let i=0;i<100;i++){
-    particles.push({
-      x: Math.random()*fwCanvas.width,
-      y: Math.random()*fwCanvas.height/2,
-      vx: (Math.random()-0.5)*4,
-      vy: Math.random()*-5-2,
-      color: `hsl(${Math.random()*360},100%,50%)`,
-      life: Math.random()*60+30
-    });
-  }
-  function fwTick(){
-    fctx.clearRect(0,0,fwCanvas.width,fwCanvas.height);
-    for(const p of particles){
-      fctx.fillStyle=p.color;
-      fctx.beginPath();
-      fctx.arc(p.x,p.y,3,0,Math.PI*2);
-      fctx.fill();
-      p.x+=p.vx; p.y+=p.vy; p.vy+=0.1; p.life--;
-    }
-    for(let i=particles.length-1;i>=0;i--) if(particles[i].life<=0) particles.splice(i,1);
-    if(particles.length>0) requestAnimationFrame(fwTick);
-    else fwCanvas.remove();
-  }
-  fwTick();
-}
-</script>
+        function clone(o){return JSON.parse(JSON.stringify(o));}
+        function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+        function createPlayer(name,owner){return{name,owner,deck:shuffle(BASE_POOL.concat(BASE_POOL)),hand:[],kills:0,turns:0};}
+        const players=[createPlayer('אתה',OWNER.YOU),createPlayer('אויב',OWNER.ENEMY)];
+        let currentPlayer=0,gameOver=false,actionLocked=false,selectedCell=null,selectedHand=null;
+
+        function hasUnitsOnBoard(owner){
+            for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(board[r][c]&&board[r][c].owner===owner)return true;
+            return false;
+        }
+
+        function drawCardFor(pIdx,count=1){
+            const p=players[pIdx];
+            for(let i=0;i<count;i++){
+                if(p.deck.length===0)break;
+                let card=p.deck.pop();
+                if(!hasUnitsOnBoard(p.owner) && card.type!=='soldier'){
+                    card=clone(makeSoldier('חייל רגיל',2,1,'חייל'));
+                }
+                p.hand.push(card);
+            }
+        }
+        drawCardFor(0,3);
+        drawCardFor(1,3);
+
+        function cellRect(r,c){const x=GAP+c*CELL_W+c*GAP;const y=GAP+r*CELL_H+r*GAP;return{x,y,w:CELL_W,h:CELL_H};}
+
+        function iconFor(card){
+            if(card.type==='soldier'){
+                return card.role==='צלף'?'🎯':card.role==='כבד'?'🛡️':'🪖';
+            } else if(card.type==='weapon')return '🔫';
+            else if(card.kind==='scope')return '🔭';
+            else return '💙';
+        }
+
+        function getTotalHP(unit) {
+            const armorCount = unit.upgrades ? unit.upgrades.filter(up=>up.kind==='armor').length : 0;
+            return unit.maxHp + armorCount;
+        }
+        function drawHearts(u, x, y){
+            const armorCount = u.upgrades ? u.upgrades.filter(up => up.kind==='armor').length : 0;
+            const totalHearts = u.hp + armorCount;
+            const heartsWidth = totalHearts * 14; 
+            const startX = x + (CELL_W - heartsWidth) / 2;
+            const startY = y + CELL_H - 20;
+
+            // Draw armor hearts (blue)
+            for(let i=0; i<armorCount; i++){
+                const bx = startX + i*14, by = startY;
+                ctx.font = '12px system-ui';
+                ctx.fillText('💙', bx+1, by+12);
+            }
+
+            // Draw HP hearts (red)
+            for(let i=0; i<u.hp; i++){
+                const bx = startX + (armorCount*14) + i*14, by = startY;
+                ctx.font = '12px system-ui';
+                ctx.fillText('❤️', bx+1, by+12);
+            }
+        }
+
+
+        function getHitChance(unit){
+            let base=1.0;
+            if(unit.role==='חייל') base=0.7;
+            if(unit.role==='כבד') base=0.6;
+            if(unit.role==='צלף') base=0.8;
+            const scopes = unit.upgrades ? unit.upgrades.filter(up=>up.kind==='scope').length : 0;
+            if(scopes > 0) base += 0.1 * scopes;
+            base = Math.min(1,base);
+            return base;
+        }
+
+        function drawUpgradeIcons(u, x, y, h) {
+            let icons = u.weapons.map(w => '🔫').concat(u.upgrades.filter(up => up.kind === 'scope').map(up => iconFor(up)));
+            let totalWidth = icons.length * 20;
+            let startX = x + (CELL_W - totalWidth) / 2;
+            
+            ctx.font = '16px sans-serif';
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+
+            icons.forEach((icon, i) => {
+                ctx.fillText(icon, startX + i * 20 + 10, y + h - 50);
+            });
+        }
+
+        function draw(){
+            ctx.clearRect(0,0,cv.width,cv.height);
+            for(let r=0;r<ROWS;r++){
+                for(let c=0;c<COLS;c++){
+                    const {x,y,w,h}=cellRect(r,c);
+                    ctx.fillStyle=(r<2)?'#092033':'#072022';
+                    ctx.fillRect(x,y,w,h);
+                    ctx.strokeStyle='rgba(255,255,255,.08)';
+                    ctx.strokeRect(x,y,w,h);
+                }
+            }
+            for(let r=0;r<ROWS;r++){
+                for(let c=0;c<COLS;c++){
+                    const u=board[r][c];
+                    if(!u)continue;
+                    ctx.save();
+                    ctx.beginPath();
+                    const {x,y,w,h}=cellRect(r,c);
+                    ctx.rect(x+2, y+2, w-4, h-4);
+                    ctx.clip();
+                    
+                    const unit_x = x+w/2, unit_y = y+h/2;
+                    ctx.font='32px sans-serif';
+                    ctx.textAlign='center';
+                    ctx.textBaseline='middle';
+                    
+                    if(u.type==='soldier'){
+                        ctx.fillStyle = u.owner === OWNER.YOU ? '#10b981' : '#ef4444';
+                        ctx.beginPath();
+                        ctx.arc(unit_x, y + 25, 16, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.font = '20px sans-serif';
+                        ctx.fillStyle = '#fff';
+                        ctx.fillText(iconFor(u), unit_x, y + 25);
+                        drawUpgradeIcons(u, x, y, h);
+                    }
+                    
+                    drawHearts(u, x, y);
+
+                    ctx.restore();
+                }
+            }
+            if(selectedCell){
+                const {x,y,w,h}=cellRect(selectedCell.row,selectedCell.col);
+                ctx.save();ctx.strokeStyle='#3b82f6';ctx.lineWidth=3;ctx.strokeRect(x,y,w,h);ctx.restore();
+            }
+            renderProjectiles();
+        }
+
+        function renderHand(){
+            const p=players[currentPlayer];
+            handEl.innerHTML='';
+            p.hand.forEach((card,idx)=>{
+                const el=document.createElement('div');
+                el.className='card';
+                el.style.position='relative';
+                el.innerHTML = `<div class="ic">${iconFor(card)}</div> <h4>${card.name}</h4> <p>${card.type==='soldier'?'HP:'+getTotalHP(card)+' • טווח:'+card.range:card.type==='weapon'?'נשק':card.kind==='scope'?'כוונת':'שריון'}</p>`;
+                el.onclick=()=>{
+                    selectedCell=null;
+                    selectedHand=(selectedHand===idx?null:idx);
+                    document.querySelectorAll('.card').forEach((n,i)=>n.classList.toggle('sel',i===selectedHand));
+                };
+                handEl.appendChild(el);
+            });
+        }
+        
+        function shoot(unit,target,fromCell,toCell,cb){
+            const weaponsCount = unit.weapons.filter(w=>w.name==='רובה').length;
+            if(weaponsCount===0){
+                if(cb) cb(false);
+                return;
+            }
+
+            let shotsRemaining = weaponsCount;
+            const onShotComplete = (shotWasSuccessful) => {
+                if (shotWasSuccessful) {
+                    if (target.hp <= 0 && (target.upgrades ? target.upgrades.filter(up => up.kind === 'armor').length === 0 : true)) {
+                        if (target.type === 'soldier') {
+                            board[toCell.row][toCell.col] = null;
+                        }
+                        players[currentPlayer].kills++;
+                    }
+                }
+                shotsRemaining--;
+                if (shotsRemaining <= 0) {
+                    cb(true);
+                }
+            };
+            
+            for (let i = 0; i < weaponsCount; i++) {
+                setTimeout(() => {
+                    launchProjectileCustom(fromCell, toCell, () => {
+                        let hitSuccess = (Math.random() < getHitChance(unit));
+                        if (hitSuccess) {
+                            let damage = 1;
+                            while (damage > 0) {
+                                let armorIdx = target.upgrades ? target.upgrades.findIndex(up => up.kind === 'armor') : -1;
+                                if (armorIdx >= 0) {
+                                    target.upgrades.splice(armorIdx, 1);
+                                    damage--;
+                                } else if (target.hp > 0) {
+                                    target.hp -= 1;
+                                    damage--;
+                                } else {
+                                    break;
+                                }
+                            }
+                        } else {
+                            let missRow = Math.floor(Math.random() * ROWS);
+                            let missCol = Math.floor(Math.random() * COLS);
+                            launchProjectileCustom(fromCell, { row: missRow, col: missCol }, () => {});
+                        }
+                        onShotComplete(hitSuccess);
+                        draw();
+                    });
+                }, i * 400); // 400ms delay between shots
+            }
+        }
+
+        function launchProjectileCustom(fromCell,toCell,onDone){
+            const sf=cellRect(fromCell.row,fromCell.col),tf=cellRect(toCell.row,toCell.col);
+            const sx=sf.x+sf.w/2,sy=sf.y+sf.h/2,ex=tf.x+tf.w/2,ey=tf.y+tf.h/2;
+            projectiles.push({sx,sy,ex,ey,start:performance.now(),dur:280,cb:onDone});
+            if(!animRAF)animRAF=requestAnimationFrame(tick);
+        }
+
+        function inBounds(r,c){return r>=0&&r<ROWS&&c>=0&&c<COLS;}
+        function isOwnPlacementRow(owner,row){return owner===OWNER.YOU?(row>=2):(row<2);}
+        
+        function isAdjacent(from,to){
+            const dr=Math.abs(from.row-to.row),dc=Math.abs(from.col-to.col);
+            return ((dr===1 && dc===0)||(dr===0 && dc===1));
+        }
+        
+        function isAttackable(from, to, unit){
+            const dr=Math.abs(from.row-to.row),dc=Math.abs(from.col-to.col);
+            if (unit.range === 1) {
+                return (dr === 1 && dc === 0) || (dr === 0 && dc === 1) || (dr===1 && dc===1);
+            }
+            if (unit.range === 2) {
+                return Math.max(dr, dc) <= 2 && !(dr === 0 && dc === 0);
+            }
+            return false;
+        }
+
+        function checkVictoryNow(){
+            let youWin = false, enemyWin = false;
+            for (let c = 0; c < COLS; c++) {
+                if (board[0][c] && board[0][c].owner === OWNER.YOU) youWin = true;
+            }
+            for(let c=0; c<COLS; c++){
+                if(board[ROWS-1][c] && board[ROWS-1][c].owner === OWNER.ENEMY) enemyWin = true;
+            }
+            if(youWin || enemyWin){
+                gameOver = true;
+                setTimeout(() => {
+                    if(youWin) showVictory(players[OWNER.YOU]);
+                    else showVictory(players[OWNER.ENEMY]);
+                }, 200);
+                return true;
+            }
+            return false;
+        }
+
+        function showVictory(winner) {
+            const totalTurns = players[0].turns + players[1].turns;
+            victoryText.textContent = `${winner.name} ניצח! 🎉`;
+            victoryStats.innerHTML = `סה״כ סיבובים: ${totalTurns}<br>` + `הרגים: אתה ${players[0].kills}, אויב ${players[1].kills}`;
+            victoryOverlay.classList.add('active');
+            launchFireworks();
+        }
+
+        function beginTurn(pIdx){
+            currentPlayer=pIdx;
+            document.body.style.background=currentPlayer===0?'var(--bg-you)':'var(--bg-enemy)';
+            players[currentPlayer].turns++;
+            turnLabel.textContent=players[currentPlayer].name;
+            selectedCell=null;selectedHand=null;
+            drawCardFor(currentPlayer,1);
+            renderHand();draw();
+        }
+
+        function endTurnAfter(ms=400){actionLocked=true;setTimeout(()=>{actionLocked=false;if(!gameOver)beginTurn(1-currentPlayer);},ms);}
+        const projectiles=[];
+        let animRAF=null;
+
+        function renderProjectiles(){
+            ctx.save();
+            for(const p of projectiles){
+                const t=Math.min(1,(performance.now()-p.start)/p.dur);
+                const x=p.sx+(p.ex-p.sx)*t;
+                const y = p.sy + (p.ey - p.sy) * t;
+                ctx.fillStyle = '#ffd166';
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        function tick(){
+            draw();
+            const now = performance.now();
+            for(let i = projectiles.length - 1; i >= 0; i--){
+                if(now - projectiles[i].start >= projectiles[i].dur){
+                    const cb = projectiles[i].cb;
+                    projectiles.splice(i,1);
+                    if(typeof cb === 'function') cb();
+                }
+            }
+            if(projectiles.length > 0){
+                animRAF = requestAnimationFrame(tick);
+            } else {
+                animRAF = null;
+            }
+        }
+
+        cv.addEventListener('pointerdown', (ev)=>{
+            if(gameOver || actionLocked) return;
+            const rect = cv.getBoundingClientRect();
+            const x = ev.clientX - rect.left;
+            const y = ev.clientY - rect.top;
+            let row=-1, col=-1;
+            for(let r=0;r<ROWS;r++){
+                for(let c=0;c<COLS;c++){
+                    const {x:cx, y:cy, w, h} = cellRect(r,c);
+                    if(x>=cx && x<=cx+w && y>=cy && y<=cy+h){
+                        row=r;
+                        col=c;
+                    }
+                }
+            }
+            if(row<0) return;
+
+            const me = players[currentPlayer];
+
+            if(selectedHand !== null){
+                const card = me.hand[selectedHand];
+                if(card.type === 'soldier'){
+                    if(board[row][col] === null && isOwnPlacementRow(me.owner,row)){
+                        const u = clone(card);
+                        u.owner=me.owner;
+                        board[row][col]=u;
+                        me.hand.splice(selectedHand,1);
+                        selectedHand=null;
+                        renderHand();
+                        draw();
+                        if(!checkVictoryNow()) endTurnAfter(250);
+                    } else {
+                        selectedHand=null;
+                        renderHand();
+                        draw();
+                    }
+                    return;
+                } else {
+                    const u = board[row][col];
+                    if(u && u.owner===me.owner){
+                        if(card.type==='weapon'){
+                            u.weapons.push(clone(card));
+                        } else if(card.type==='upgrade' && card.kind==='armor') {
+                             u.upgrades.push(clone(card));
+                        } else if (card.type === 'upgrade' && card.kind === 'scope') {
+                            u.upgrades.push(clone(card));
+                        }
+                        me.hand.splice(selectedHand,1);
+                        selectedHand=null;
+                        renderHand();
+                        draw();
+                        if(!checkVictoryNow()) endTurnAfter(200);
+                    } else {
+                        selectedHand=null;
+                        renderHand();
+                        draw();
+                    }
+                    return;
+                }
+            }
+
+            if(selectedCell){
+                const from = selectedCell;
+                const unit = board[from.row][from.col];
+                if(!unit || unit.owner!==me.owner){
+                    selectedCell=null;
+                    draw();
+                    return;
+                }
+
+                const target = board[row][col];
+                
+                if(target && target.owner!==me.owner && isAttackable(from, {row,col}, unit)){
+                    actionLocked=true;
+                    shoot(unit,target,from,{row,col},actionWas=>{
+                        if(actionWas){
+                            selectedCell=null;
+                            draw();
+                            if(!checkVictoryNow()) endTurnAfter(50);
+                        } else {
+                            actionLocked=false;
+                        }
+                    });
+                    return;
+                }
+                
+                if(unit.type === 'soldier' && !target && isAdjacent(from,{row,col})){
+                    board[row][col]=unit;
+                    board[from.row][from.col]=null;
+                    selectedCell=null;
+                    draw();
+                    if(!checkVictoryNow()) endTurnAfter(120);
+                    return;
+                }
+
+                selectedCell=null;
+                draw();
+                return;
+            } else {
+                const u = board[row][col];
+                if(u && u.owner===me.owner){
+                    selectedCell={row,col};
+                    draw();
+                }
+            }
+        });
+
+        resize();
+        draw();
+        beginTurn(currentPlayer);
+
+        function launchFireworks(){
+            const fwCanvas = document.createElement('canvas');
+            fwCanvas.style.position='fixed';
+            fwCanvas.style.inset=0;
+            fwCanvas.style.pointerEvents='none';
+            document.body.appendChild(fwCanvas);
+            fwCanvas.width = window.innerWidth;
+            fwCanvas.height = window.innerHeight;
+            const fctx = fwCanvas.getContext('2d');
+            const particles=[];
+            for(let i=0;i<100;i++){
+                particles.push({
+                    x: Math.random()*fwCanvas.width,
+                    y: Math.random()*fwCanvas.height/2,
+                    vx: (Math.random()-0.5)*4,
+                    vy: Math.random()*-5-2,
+                    color: `hsl(${Math.random()*360},100%,50%)`,
+                    life: Math.random()*60+30
+                });
+            }
+            function fwTick(){
+                fctx.clearRect(0,0,fwCanvas.width,fwCanvas.height);
+                for(const p of particles){
+                    fctx.fillStyle=p.color;
+                    fctx.beginPath();
+                    fctx.arc(p.x,p.y,3,0,Math.PI*2);
+                    fctx.fill();
+                    p.x+=p.vx;
+                    p.y+=p.vy;
+                    p.vy+=0.1;
+                    p.life--;
+                }
+                for(let i=particles.length-1;i>=0;i--)
+                    if(particles[i].life<=0) particles.splice(i,1);
+                if(particles.length>0) requestAnimationFrame(fwTick);
+                else fwCanvas.remove();
+            }
+            fwTick();
+        }
+    </script>
 </body>
 </html>
